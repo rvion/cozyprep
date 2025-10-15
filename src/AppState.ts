@@ -10,6 +10,8 @@ export class AppState {
     currentTime = 0
     currentFrame = 0
     frameRange: [number, number] = [0, 10]
+    /** Per-video frame ranges stored by video ID */
+    videoFrameRanges: Map<string, [number, number]> = new Map()
 
     constructor() {
         makeAutoObservable(this)
@@ -23,6 +25,10 @@ export class AppState {
 
     setFrameRange(range: [number, number]) {
         this.frameRange = range
+        // Save frame range for current video
+        if (this.selectedVideo) {
+            this.videoFrameRanges.set(this.selectedVideo.id, range)
+        }
     }
 
     async loadVideos() {
@@ -50,6 +56,9 @@ export class AppState {
     selectVideo(video: Video) {
         this.selectedVideo = video
         this.loadAnnotations(video.id)
+        // Load saved frame range for this video, or default to [0, 10]
+        const savedRange = this.videoFrameRanges.get(video.id)
+        this.frameRange = savedRange || [0, 10]
     }
 
     async loadAnnotations(videoId: string) {

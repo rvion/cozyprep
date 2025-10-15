@@ -5,6 +5,9 @@
 * Optimize both for brevity and clarity.
 * Prefer Small functions.
 * Prefer early returns over nested blocks.
+* prefer method with foo =() => ... just to avoid binding this, and to have single line functions
+* feel free to use methods like `foo = () => void (this.x++)` to keep them single line
+* mobx setup with `configure({ enforceActions: "never" })` so using `this.x++` in methods is perfectly fine
 * never use `switch`. Always prefer dedicated functions with early return or lookup maps.
 * No unsafe TS. Avoid `any`, `!` (non-null), `as any`, `@ts-ignore`. Prefer `unknown` + proper narrowing.
 * Strict everything. `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`.

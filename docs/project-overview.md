@@ -91,22 +91,23 @@ App (root)
 **State:**
 - `videos: Video[]` - all available videos
 - `selectedVideo: Video | null` - currently selected video
-- `annotations: Annotation[]` - annotations for selected video
+- `annotations: Annotation[]` - annotations for selected video (observable array)
 - `currentTime: number` - current playback time
 - `currentFrame: number` - current frame number
-- `frameRange: [number, number]` - annotation frame range (start, end)
+- `frameRange: [number, number]` - annotation frame range for current video (start, end)
+- `videoFrameRanges: Map<string, [number, number]>` - per-video saved frame ranges
 - `loading: boolean` - loading state
 - `error: string | null` - error messages
 
 **Methods:**
 - `loadVideos()` - Fetch videos from API (includes stats), auto-select first
-- `selectVideo(video)` - Change selected video, load its annotations
+- `selectVideo(video)` - Change selected video, load its annotations and saved frame range
 - `loadAnnotations(videoId)` - Fetch annotations for video
 - `addAnnotation(timestamp, startFrame, endFrame, tags, notes, rating)` - Create annotation
 - `deleteAnnotation(annotationId)` - Remove annotation
 - `updateAnnotation(annotationId, updates)` - Modify annotation
 - `setCurrentTime(time, frame)` - Update playback position
-- `setFrameRange(range)` - Update annotation frame range
+- `setFrameRange(range)` - Update annotation frame range and save it for current video
 
 ### VideoList (src/VideoList.tsx)
 
@@ -160,8 +161,11 @@ App (root)
 
 **Behavior:**
 - Updates `appState.currentTime/currentFrame` on video time changes
-- Syncs video element with UI state changes
+- Syncs video element with UI state changes (slider → video seeking works properly)
 - Auto-loads metadata when video loads
+- **Auto-loop**: When playing, video automatically loops back to start of annotation range when it reaches the end
+- Stores video element reference for direct manipulation
+- Uses Tabler icons for transport controls (play, pause, skip forward/back)
 
 ### AnnotationTools (src/AnnotationTools.tsx)
 
@@ -182,19 +186,21 @@ App (root)
 **Behavior:**
 - **Auto-creates** annotation when user starts editing (adds tag, types notes, or changes rating)
 - **Auto-saves** all changes immediately via updateAnnotation API
+- **Notifications**: Shows green "Saved" toast notification on every save/update
 - **Frame-range based**: annotation is tied to `appState.frameRange` (not current frame)
 - Changing frameRange switches to different annotation (if one exists) or shows blank editor
-- Clear button (×) deletes current annotation
+- Clear button deletes current annotation
 
-**UI Elements:**
-- Header with title and clear button
-- Frame range display with "(editing)" or "(no annotation)" status
-- Rating selector (1-5 stars)
-- Tag input + "Add" button (Enter key supported)
-- Tag badges with remove (×) button
-- Notes textarea (4 rows)
+**UI Elements (compact design):**
+- Header with title, frame range display, and clear button (IconTrash)
+- Rating selector (1-5 stars, size xs)
+- Tag input + "Add" button with IconPlus icon
+- Tag badges with IconX remove button
+- Notes textarea (2 rows, size xs)
+- All padding reduced to "xs", gaps reduced to "xs" or 4px
+- Uses @tabler/icons-react for all icons
 
-**No "Save" button** - all changes are immediately persisted to backend
+**No "Save" button** - all changes are immediately persisted with visual feedback
 
 ## UI Layout
 
@@ -242,10 +248,15 @@ bun build src/index.html
 
 ## Recent Updates
 
+- ✅ **Per-video frame ranges** - annotation ranges saved separately for each video
+- ✅ **Auto-loop playback** - video continuously loops within selected annotation range
+- ✅ **Tabler icons** - replaced emoji icons with professional @tabler/icons-react
+- ✅ **Save notifications** - visual feedback when annotations are saved/updated
+- ✅ **Compact annotation editor** - reduced padding, smaller inputs, efficient layout
+- ✅ **Fixed playback slider** - slider properly syncs with video element, seeking works correctly
 - ✅ **Backend metadata extraction** - ffprobe extracts duration, fps, width, height on video load
 - ✅ **Single continuously editable annotation** - frame-range based, auto-saves, no "Save" button
 - ✅ **Reorganized UI layout** - all controls grouped at top-left (metadata → annotation editor → video)
-- ✅ **Fixed playback slider bug** - MobX reaction syncs video.currentTime with slider changes
 - ✅ File-based persistent storage (annotations saved to .txt files)
 - ✅ Frame range selection (start/end frames with RangeSlider)
 - ✅ Rating system (1-5 stars per annotation)

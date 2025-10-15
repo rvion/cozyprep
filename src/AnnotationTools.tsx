@@ -3,6 +3,8 @@ import { makeAutoObservable, reaction } from "mobx"
 import { useMemo } from "react"
 import type { AppState } from "./AppState"
 import type { Annotation } from "./types"
+import { IconTrash, IconPlus, IconX } from "@tabler/icons-react"
+import { notifications } from "@mantine/notifications"
 
 export type AnnotationToolsProps = {
     appState: AppState
@@ -53,6 +55,7 @@ class AnnotationToolsState {
         const ann = this.currentAnnotation
         if (ann) {
             this.p.appState.updateAnnotation(ann.id, { rating })
+            this.showSavedNotification()
         }
     }
 
@@ -65,6 +68,7 @@ class AnnotationToolsState {
         if (ann && !ann.tags.includes(tag)) {
             this.p.appState.updateAnnotation(ann.id, { tags: [...ann.tags, tag] })
             this.tagInput = ""
+            this.showSavedNotification()
         }
     }
 
@@ -72,6 +76,7 @@ class AnnotationToolsState {
         const ann = this.currentAnnotation
         if (ann) {
             this.p.appState.updateAnnotation(ann.id, { tags: ann.tags.filter((t) => t !== tag) })
+            this.showSavedNotification()
         }
     }
 
@@ -84,7 +89,17 @@ class AnnotationToolsState {
         const ann = this.currentAnnotation
         if (ann) {
             this.p.appState.updateAnnotation(ann.id, { notes: value })
+            this.showSavedNotification()
         }
+    }
+
+    showSavedNotification() {
+        notifications.show({
+            title: "Saved",
+            message: "Annotation saved successfully",
+            color: "green",
+            autoClose: 2000,
+        })
     }
 
     /** Ensure an annotation exists for the current frame range */
@@ -119,38 +134,39 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
     const uist = useMemo(() => new AnnotationToolsState(props), [])
 
     return (
-        <X.Card withBorder>
-            <X.Stack gap="sm">
+        <X.Card withBorder padding="xs">
+            <X.Stack gap="xs">
                 <X.Group justify="space-between" align="center">
-                    <X.Text size="sm" fw={500}>
-                        Annotation Editor
-                    </X.Text>
+                    <X.Group gap={4}>
+                        <X.Text size="xs" fw={600}>
+                            Annotation
+                        </X.Text>
+                        <X.Text size="xs" c="dimmed">
+                            {props.appState.frameRange[0]}-{props.appState.frameRange[1]}
+                            {uist.currentAnnotation ? " (editing)" : ""}
+                        </X.Text>
+                    </X.Group>
                     {uist.currentAnnotation && (
                         <X.ActionIcon
-                            size="sm"
+                            size="xs"
                             color="red"
                             variant="subtle"
                             onClick={() => uist.clearAnnotation()}
                             title="Clear annotation"
                         >
-                            ×
+                            <IconTrash size={14} />
                         </X.ActionIcon>
                     )}
                 </X.Group>
 
-                <X.Text size="xs" c="dimmed">
-                    Range: Frames {props.appState.frameRange[0]}-{props.appState.frameRange[1]}
-                    {uist.currentAnnotation ? " (editing)" : " (no annotation)"}
-                </X.Text>
-
-                <div>
-                    <X.Text size="xs" mb="xs">
+                <X.Group gap="xs" align="center">
+                    <X.Text size="xs" c="dimmed" style={{ minWidth: 40 }}>
                         Rating
                     </X.Text>
-                    <X.Rating value={uist.rating} onChange={(val) => uist.setRating(val)} />
-                </div>
+                    <X.Rating value={uist.rating} onChange={(val) => uist.setRating(val)} size="xs" />
+                </X.Group>
 
-                <X.Group gap="xs">
+                <X.Group gap={4}>
                     <X.TextInput
                         placeholder="Add tag..."
                         value={uist.tagInput}
@@ -163,20 +179,27 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
                         style={{ flex: 1 }}
                         size="xs"
                     />
-                    <X.Button onClick={() => uist.addTag()} size="xs">
-                        Add
-                    </X.Button>
+                    <X.ActionIcon onClick={() => uist.addTag()} size="lg" variant="filled">
+                        <IconPlus size={16} />
+                    </X.ActionIcon>
                 </X.Group>
 
                 {uist.tags.length > 0 && (
-                    <X.Group gap="xs">
+                    <X.Group gap={4}>
                         {uist.tags.map((tag) => (
                             <X.Badge
                                 key={tag}
+                                size="sm"
                                 rightSection={
-                                    <span onClick={() => uist.removeTag(tag)} style={{ cursor: "pointer" }}>
-                                        ×
-                                    </span>
+                                    <X.ActionIcon
+                                        size="xs"
+                                        color="gray"
+                                        radius="xl"
+                                        variant="transparent"
+                                        onClick={() => uist.removeTag(tag)}
+                                    >
+                                        <IconX size={10} />
+                                    </X.ActionIcon>
                                 }
                             >
                                 {tag}
@@ -186,10 +209,10 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
                 )}
 
                 <X.Textarea
-                    placeholder="Add notes..."
+                    placeholder="Notes..."
                     value={uist.notes}
                     onChange={(e) => uist.setNotes(e.currentTarget.value)}
-                    rows={4}
+                    rows={2}
                     size="xs"
                 />
             </X.Stack>

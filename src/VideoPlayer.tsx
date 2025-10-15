@@ -4,6 +4,7 @@ import { makeAutoObservable, reaction } from "mobx"
 import { useMemo, useRef, useEffect } from "react"
 import type { AppState } from "./AppState"
 import { AnnotationTools } from "./AnnotationTools"
+import { IconPlayerPlay, IconPlayerPause, IconPlayerSkipBack, IconPlayerSkipForward } from "@tabler/icons-react"
 
 export type VideoPlayerProps = {
     appState: AppState
@@ -14,9 +15,10 @@ class VideoPlayerState {
     duration = 0
     playing = false
     fps = 30
+    videoElement: HTMLVideoElement | null = null
 
     constructor(public p: VideoPlayerProps) {
-        makeAutoObservable(this)
+        makeAutoObservable(this, { videoElement: false })
 
         // React to video changes and update metadata
         reaction(
@@ -31,6 +33,10 @@ class VideoPlayerState {
         )
     }
 
+    setVideoElement(el: HTMLVideoElement | null) {
+        this.videoElement = el
+    }
+
     setFps(fps: number) {
         this.fps = Math.max(1, Math.min(120, fps))
     }
@@ -43,9 +49,21 @@ class VideoPlayerState {
         return Math.floor(this.duration * this.fps)
     }
 
+    get startFrameTime(): number {
+        return this.p.appState.frameRange[0] / this.fps
+    }
+
+    get endFrameTime(): number {
+        return this.p.appState.frameRange[1] / this.fps
+    }
+
     setCurrentTime(time: number) {
         this.currentTime = time
-        // Use queueMicrotask to defer the appState update
+        // Sync video element
+        if (this.videoElement && Math.abs(this.videoElement.currentTime - time) > 0.01) {
+            this.videoElement.currentTime = time
+        }
+        // Update appState
         queueMicrotask(() => {
             this.p.appState.setCurrentTime(time, this.currentFrame)
         })
@@ -57,6 +75,17 @@ class VideoPlayerState {
 
     togglePlay() {
         this.playing = !this.playing
+    }
+
+    /** Called on video timeupdate - handles auto-loop within range */
+    handleTimeUpdate(time: number) {
+        this.currentTime = time
+        this.p.appState.setCurrentTime(time, this.currentFrame)
+
+        // Auto-loop within annotation range when playing
+        if (this.playing && time >= this.endFrameTime) {
+            this.setCurrentTime(this.startFrameTime)
+        }
     }
 
     seekToFrame(frame: number) {
@@ -81,8 +110,11 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
         const video = videoRef.current
         if (!video) return
 
+        // Store video element reference
+        uist.setVideoElement(video)
+
         const handleTimeUpdate = () => {
-            uist.setCurrentTime(video.currentTime)
+            uist.handleTimeUpdate(video.currentTime)
         }
 
         const handleLoadedMetadata = () => {
@@ -104,6 +136,7 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
         return () => {
             video.removeEventListener("timeupdate", handleTimeUpdate)
             video.removeEventListener("loadedmetadata", handleLoadedMetadata)
+            uist.setVideoElement(null)
         }
     }, [uist])
 
@@ -117,23 +150,6 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
             video.pause()
         }
     }, [uist.playing])
-
-    useEffect(() => {
-        const video = videoRef.current
-        if (!video) return
-
-        // Use MobX reaction to sync video.currentTime with uist.currentTime
-        const dispose = reaction(
-            () => uist.currentTime,
-            (time) => {
-                if (Math.abs(video.currentTime - time) > 0.01) {
-                    video.currentTime = time
-                }
-            }
-        )
-
-        return dispose
-    }, [uist])
 
     if (!props.appState.selectedVideo) {
         return (
@@ -202,13 +218,13 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
 
                 <X.Group justify="center" gap="sm">
                     <X.ActionIcon variant="filled" onClick={() => uist.prevFrame()} size="lg">
-                        ⏮
+                        <IconPlayerSkipBack size={20} />
                     </X.ActionIcon>
                     <X.ActionIcon variant="filled" onClick={() => uist.togglePlay()} size="xl">
-                        {uist.playing ? "⏸" : "▶"}
+                        {uist.playing ? <IconPlayerPause size={24} /> : <IconPlayerPlay size={24} />}
                     </X.ActionIcon>
                     <X.ActionIcon variant="filled" onClick={() => uist.nextFrame()} size="lg">
-                        ⏭
+                        <IconPlayerSkipForward size={20} />
                     </X.ActionIcon>
                 </X.Group>
             </X.Stack>

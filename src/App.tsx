@@ -1,11 +1,16 @@
 import "./setup"
 import "@mantine/core/styles.css"
+import "@mantine/notifications/styles.css"
 import "./index.css"
 import { useMemo } from "react"
 import { AppState } from "./AppState"
 import { VideoList } from "./VideoList"
 import { VideoPlayer } from "./VideoPlayer"
 import { observer } from "mobx-react-lite"
+import { Notifications } from "@mantine/notifications"
+
+import { configure } from "mobx"
+configure({ enforceActions: "never" })
 
 const theme = X.createTheme({
     /** Put your mantine theme override here */
@@ -16,6 +21,7 @@ export const App = observer(() => {
 
     return (
         <X.MantineProvider theme={theme}>
+            <Notifications />
             <X.AppShell padding="md" header={{ height: 60 }} navbar={{ width: 300, breakpoint: "sm" }}>
                 <X.AppShell.Header>
                     <X.Group h="100%" px="md" justify="space-between">
