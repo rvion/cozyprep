@@ -1,33 +1,30 @@
+import "./setup"
 import { APITester } from "./APITester"
+import "@mantine/core/styles.css"
 import "./index.css"
 
-import logo from "./logo.svg"
-import reactLogo from "./react.svg"
+const theme = X.createTheme({
+    /** Put your mantine theme override here */
+})
 
-export function App() {
+export const App = () => {
+    const [opened, { toggle }] = H.useDisclosure()
+
     return (
-        <div className="max-w-7xl mx-auto p-8 text-center relative z-10">
-            <div className="flex justify-center items-center gap-8 mb-8">
-                <img
-                    src={logo}
-                    alt="Bun Logo"
-                    className="h-24 p-6 transition-all duration-300 hover:drop-shadow-[0_0_2em_#646cffaa] scale-120"
-                />
-                🟢
-                <img
-                    src={reactLogo}
-                    alt="React Logo"
-                    className="h-24 p-6 transition-all duration-300 hover:drop-shadow-[0_0_2em_#61dafbaa] animate-[spin_20s_linear_infinite]"
-                />
-            </div>
-
-            <h1 className="text-5xl font-bold my-4 leading-tight">Bun + React</h1>
-            <p>
-                Edit <code className="bg-[#1a1a1a] px-2 py-1 rounded font-mono">src/App.tsx</code> and save to test HMR
-            </p>
-            <APITester />
-        </div>
+        <X.MantineProvider theme={theme}>
+            <X.AppShell padding="md" header={{ height: 60 }} navbar={{ width: 300, breakpoint: "sm" }}>
+                <X.AppShell.Header>
+                    <X.Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+                    <div>Logo</div>
+                </X.AppShell.Header>
+                <X.AppShell.Navbar>Navbar</X.AppShell.Navbar>
+                <X.AppShell.Main>
+                    <X.Input name="test" />
+                    <div>FUCK</div>
+                    <APITester />
+                </X.AppShell.Main>
+            </X.AppShell>
+            {/* Your app here */}
+        </X.MantineProvider>
     )
 }
-
-export default App
