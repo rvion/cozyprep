@@ -50,7 +50,8 @@ async function getVideoStats(videoId: string) {
 /** Extract video metadata using ffprobe */
 async function getVideoMetadata(videoPath: string) {
     try {
-        const result = await $`ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,duration -show_entries format=duration -of json ${videoPath}`.json()
+        const result =
+            await $`ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,duration -show_entries format=duration -of json ${videoPath}`.json()
 
         const stream = result.streams?.[0]
         const format = result.format
@@ -58,7 +59,7 @@ async function getVideoMetadata(videoPath: string) {
         // Parse frame rate (e.g., "30/1" or "30000/1001")
         let fps = 30 // default fallback
         if (stream?.r_frame_rate) {
-            const [num, den] = stream.r_frame_rate.split('/').map(Number)
+            const [num, den] = stream.r_frame_rate.split("/").map(Number)
             if (den && den > 0) fps = Math.round((num / den) * 100) / 100
         }
 
@@ -94,10 +95,7 @@ const server = serve({
                         mp4Files.map(async (name, idx) => {
                             const id = name.replace(".mp4", "")
                             const videoPath = join(VIDEOS_DIR, name)
-                            const [stats, metadata] = await Promise.all([
-                                getVideoStats(id),
-                                getVideoMetadata(videoPath),
-                            ])
+                            const [stats, metadata] = await Promise.all([getVideoStats(id), getVideoMetadata(videoPath)])
                             return {
                                 id,
                                 name,
