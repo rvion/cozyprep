@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite"
 import { usePropsAsStableObservableObject } from "./usePropsAsStableObservableObject"
-import { makeAutoObservable } from "mobx"
+import { makeAutoObservable, reaction } from "mobx"
 import { useMemo, useRef, useEffect } from "react"
 import type { AppState } from "./AppState"
 
@@ -10,19 +10,24 @@ export type VideoPlayerProps = {
 
 class VideoPlayerState {
     currentTime = 0
-    duration = 100
+    duration = 0
     playing = false
     fps = 30
 
     constructor(public p: VideoPlayerProps) {
         makeAutoObservable(this)
-        // Initialize from video metadata if available
-        if (p.appState.selectedVideo?.duration) {
-            this.duration = p.appState.selectedVideo.duration
-        }
-        if (p.appState.selectedVideo?.fps) {
-            this.fps = p.appState.selectedVideo.fps
-        }
+
+        // React to video changes and update metadata
+        reaction(
+            () => p.appState.selectedVideo,
+            (video) => {
+                if (video?.duration) this.duration = video.duration
+                if (video?.fps) this.fps = video.fps
+                this.currentTime = 0
+                this.playing = false
+            },
+            { fireImmediately: true }
+        )
     }
 
     setFps(fps: number) {
@@ -80,7 +85,9 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
         }
 
         const handleLoadedMetadata = () => {
-            console.log(`[VideoPlayer] Loaded metadata: duration=${video.duration}s, videoWidth=${video.videoWidth}, videoHeight=${video.videoHeight}`)
+            console.log(
+                `[VideoPlayer] Loaded metadata: duration=${video.duration}s, videoWidth=${video.videoWidth}, videoHeight=${video.videoHeight}`,
+            )
             uist.setDuration(video.duration)
         }
 
@@ -130,14 +137,25 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
     return (
         <X.Stack gap="md" h="100%">
             <div className="relative bg-black rounded overflow-hidden">
-                <video ref={videoRef} src={props.appState.selectedVideo.url} className="w-full" style={{ maxHeight: "60vh" }} />
+                <video
+                    ref={videoRef}
+                    src={props.appState.selectedVideo.url}
+                    className="w-full"
+                    style={{ maxHeight: "60vh" }}
+                    preload="metadata"
+                />
             </div>
 
             <X.Stack gap="sm">
                 <X.Group justify="space-between" align="center">
-                    <X.Text size="sm" fw={500}>
-                        Frame: {uist.currentFrame} / {uist.totalFrames}
-                    </X.Text>
+                    <X.Stack gap={2}>
+                        <X.Text size="sm" fw={500}>
+                            Frame: {uist.currentFrame} / {uist.totalFrames}
+                        </X.Text>
+                        <X.Text size="xs" c="dimmed">
+                            Metadata: {props.appState.selectedVideo?.width || "?"}x{props.appState.selectedVideo?.height || "?"} @ {props.appState.selectedVideo?.fps?.toFixed(2) || "?"}fps, {props.appState.selectedVideo?.duration?.toFixed(2) || "?"}s
+                        </X.Text>
+                    </X.Stack>
                     <X.Group gap="xs">
                         <X.NumberInput
                             value={uist.fps}
@@ -178,9 +196,7 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
                         step={1}
                         value={props.appState.frameRange}
                         onChange={(val) => props.appState.setFrameRange(val)}
-                        marks={[
-                            { value: uist.currentFrame, label: `${uist.currentFrame}` },
-                        ]}
+                        marks={[{ value: uist.currentFrame, label: `${uist.currentFrame}` }]}
                     />
                 </div>
 
