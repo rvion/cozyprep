@@ -34,8 +34,9 @@ Bun server with static file serving and REST API.
 - `GET /*` - Serve index.html (SPA)
 
 **Storage:**
-- In-memory Map for annotations (lost on server restart)
+- File-based annotation storage (.txt files alongside videos containing JSON)
 - Videos served directly from filesystem
+- Each video has a corresponding `<video-name>.txt` file for persistent annotations
 
 ### Frontend Architecture
 
@@ -71,9 +72,11 @@ App (root)
   id: string           // UUID
   videoId: string      // video ID this belongs to
   timestamp: number    // seconds into video
-  frame: number        // frame number (timestamp * fps)
+  startFrame: number   // start frame of annotation range
+  endFrame: number     // end frame of annotation range
   tags: string[]       // array of tag strings
   notes: string        // freeform text notes
+  rating: number       // 1-5 star rating
 }
 ```
 
@@ -89,17 +92,19 @@ App (root)
 - `annotations: Annotation[]` - annotations for selected video
 - `currentTime: number` - current playback time
 - `currentFrame: number` - current frame number
+- `frameRange: [number, number]` - annotation frame range (start, end)
 - `loading: boolean` - loading state
 - `error: string | null` - error messages
 
 **Methods:**
-- `loadVideos()` - Fetch videos from API, auto-select first
+- `loadVideos()` - Fetch videos from API (includes stats), auto-select first
 - `selectVideo(video)` - Change selected video, load its annotations
 - `loadAnnotations(videoId)` - Fetch annotations for video
-- `addAnnotation(timestamp, frame, tags, notes)` - Create annotation
+- `addAnnotation(timestamp, startFrame, endFrame, tags, notes, rating)` - Create annotation
 - `deleteAnnotation(annotationId)` - Remove annotation
 - `updateAnnotation(annotationId, updates)` - Modify annotation
 - `setCurrentTime(time, frame)` - Update playback position
+- `setFrameRange(range)` - Update annotation frame range
 
 ### VideoList (src/VideoList.tsx)
 
@@ -109,8 +114,13 @@ App (root)
 - `appState: AppState` - global state reference
 
 **UI:**
-- Scrollable list of video cards
-- Shows video index and filename
+- Compact, dense scrollable list
+- Each card shows:
+  - Video index and filename (truncated)
+  - Average rating (stars, only if annotated)
+  - Annotation count badge
+  - Tag count badge
+  - Color-coded badges (blue for annotations, green for tags, gray for none)
 - Highlights selected video (blue background)
 - Click to select video
 - Shows loader when loading
@@ -125,9 +135,9 @@ App (root)
 
 **Local State:**
 - `currentTime: number` - video playback position
-- `duration: number` - total video duration
+- `duration: number` - total video duration from video metadata
 - `playing: boolean` - play/pause state
-- `fps: number` - frames per second (hardcoded 30)
+- `fps: number` - frames per second (configurable, defaults to 30)
 
 **Computed:**
 - `currentFrame` - Math.floor(currentTime * fps)
@@ -135,11 +145,16 @@ App (root)
 
 **UI Elements:**
 - HTML5 `<video>` element
-- Frame/time display
-- Timeline slider (step = 1/fps)
-- Previous frame button (⏮)
-- Play/pause button (▶/⏸)
-- Next frame button (⏭)
+- Frame/time display with FPS input (NumberInput, 1-120 range)
+- Playback progress slider (Slider, step = 1/fps)
+- Annotation frame range selector (RangeSlider, 0-totalFrames)
+  - Shows current frame marker
+  - Independent of playback position
+  - Spans 0 to totalFrames
+- Transport controls:
+  - Previous frame button (⏮)
+  - Play/pause button (▶/⏸)
+  - Next frame button (⏭)
 
 **Behavior:**
 - Updates `appState.currentTime/currentFrame` on video time changes
@@ -157,25 +172,32 @@ App (root)
 - `tags: string[]` - tags for new annotation
 - `notes: string` - notes for new annotation
 - `tagInput: string` - tag input field value
+- `rating: number` - 1-5 star rating (defaults to 3)
+
+**Note:** Frame range is now stored in AppState (accessed via `appState.frameRange`) and displayed in VideoPlayer for better UX
 
 **UI Sections:**
 
 1. **Add Annotation Card**
-   - Shows current frame/timestamp
+   - Shows current frame/timestamp and selected range
+   - Rating selector (1-5 stars)
    - Tag input + "Add" button (Enter key supported)
    - Tag badges with remove (×) button
    - Notes textarea
    - "Save Annotation" button (disabled if empty)
 
+   **Note:** Frame range selection moved to VideoPlayer for better visual alignment with playback controls
+
 2. **All Annotations Card**
    - Scrollable list (300px height)
    - Shows annotation count
    - Each annotation shows:
-     - Frame number
+     - Frame range (startFrame-endFrame)
+     - Star rating (read-only)
      - Delete button (×)
      - Tag badges
      - Notes text
-   - Highlights annotations near current frame (±5 frames, blue background)
+   - Highlights annotations when current frame is within their range (blue background)
 
 **Behavior:**
 - Clears form after saving annotation
@@ -216,13 +238,22 @@ bun build src/index.html
 - `src/types.ts` - Shared TypeScript types
 - `src/usePropsAsStableObservableObject.ts` - MobX utility hook
 
+## Recent Updates
+
+- ✅ File-based persistent storage (annotations saved to .txt files)
+- ✅ Frame range selection (start/end frames with RangeSlider)
+- ✅ Rating system (1-5 stars per annotation)
+- ✅ Video statistics in list (annotation count, tag count, avg rating)
+- ✅ Configurable FPS (NumberInput, 1-120)
+- ✅ Dense video list design with badges
+
 ## Future Enhancements
 
-- Persistent storage (SQLite via bun:sqlite)
 - Export annotations to JSON/CSV
 - Video upload support
 - Annotation search/filter
-- Keyboard shortcuts
-- Custom FPS configuration
+- Keyboard shortcuts (space to play/pause, arrow keys for frame stepping)
 - Frame thumbnails
 - Annotation timeline visualization
+- Batch annotation editing
+- SQLite migration for better query performance

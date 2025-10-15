@@ -28,24 +28,47 @@ export const VideoList = observer((p: VideoListProps) => {
 
     return (
         <X.ScrollArea h="100%">
-            <X.Stack gap="xs" p="sm">
-                {appState.videos.map(video => (
-                    <X.Card
-                        key={video.id}
-                        padding="sm"
-                        withBorder
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => appState.selectVideo(video)}
-                        bg={appState.selectedVideo?.id === video.id ? "blue.0" : undefined}
-                    >
-                        <X.Text size="sm" fw={500}>
-                            Video {video.index}
-                        </X.Text>
-                        <X.Text size="xs" c="dimmed">
-                            {video.name}
-                        </X.Text>
-                    </X.Card>
-                ))}
+            <X.Stack gap={4} p="xs">
+                {appState.videos.map(video => {
+                    const hasAnnotations = (video as any).annotationCount > 0
+                    return (
+                        <X.Card
+                            key={video.id}
+                            padding="xs"
+                            withBorder
+                            className="cursor-pointer hover:bg-gray-50"
+                            onClick={() => appState.selectVideo(video)}
+                            bg={appState.selectedVideo?.id === video.id ? "blue.0" : undefined}
+                        >
+                            <X.Group justify="space-between" mb={2}>
+                                <X.Text size="xs" fw={600}>
+                                    Video {video.index}
+                                </X.Text>
+                                {hasAnnotations && (
+                                    <X.Rating
+                                        value={(video as any).avgRating || 0}
+                                        readOnly
+                                        size="xs"
+                                        count={5}
+                                    />
+                                )}
+                            </X.Group>
+
+                            <X.Text size="xs" c="dimmed" truncate="end" mb={4}>
+                                {video.name}
+                            </X.Text>
+
+                            <X.Group gap="xs">
+                                <X.Badge size="xs" variant="light" color={hasAnnotations ? "blue" : "gray"}>
+                                    {(video as any).annotationCount || 0} annotations
+                                </X.Badge>
+                                <X.Badge size="xs" variant="light" color={(video as any).tagCount > 0 ? "green" : "gray"}>
+                                    {(video as any).tagCount || 0} tags
+                                </X.Badge>
+                            </X.Group>
+                        </X.Card>
+                    )
+                })}
             </X.Stack>
         </X.ScrollArea>
     )

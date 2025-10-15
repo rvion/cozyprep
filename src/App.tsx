@@ -17,11 +17,7 @@ export const App = observer(() => {
 
     return (
         <X.MantineProvider theme={theme}>
-            <X.AppShell
-                padding="md"
-                header={{ height: 60 }}
-                navbar={{ width: 300, breakpoint: "sm" }}
-            >
+            <X.AppShell padding="md" header={{ height: 60 }} navbar={{ width: 300, breakpoint: "sm" }}>
                 <X.AppShell.Header>
                     <X.Group h="100%" px="md" justify="space-between">
                         <X.Text fw={700} size="lg">

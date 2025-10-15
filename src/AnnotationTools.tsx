@@ -1,5 +1,4 @@
 import { observer } from "mobx-react-lite"
-import { usePropsAsStableObservableObject } from "./usePropsAsStableObservableObject"
 import { makeAutoObservable } from "mobx"
 import { useMemo } from "react"
 import type { AppState } from "./AppState"
@@ -12,9 +11,14 @@ class AnnotationToolsState {
     tags: string[] = []
     notes = ""
     tagInput = ""
+    rating = 3
 
     constructor(public p: AnnotationToolsProps) {
         makeAutoObservable(this)
+    }
+
+    setRating(rating: number) {
+        this.rating = rating
     }
 
     addTag() {
@@ -26,7 +30,7 @@ class AnnotationToolsState {
     }
 
     removeTag(tag: string) {
-        this.tags = this.tags.filter(t => t !== tag)
+        this.tags = this.tags.filter((t) => t !== tag)
     }
 
     setTagInput(value: string) {
@@ -40,17 +44,14 @@ class AnnotationToolsState {
     async saveAnnotation() {
         if (this.tags.length === 0 && !this.notes) return
 
-        await this.p.appState.addAnnotation(
-            this.p.appState.currentTime,
-            this.p.appState.currentFrame,
-            this.tags,
-            this.notes
-        )
+        const [startFrame, endFrame] = this.p.appState.frameRange
+        await this.p.appState.addAnnotation(this.p.appState.currentTime, startFrame, endFrame, this.tags, this.notes, this.rating)
 
         // Reset form
         this.tags = []
         this.notes = ""
         this.tagInput = ""
+        this.rating = 3
     }
 
     deleteAnnotation(annotationId: string) {
@@ -62,7 +63,7 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
     const uist = useMemo(() => new AnnotationToolsState(props), [])
 
     const currentAnnotations = props.appState.annotations.filter(
-        a => Math.abs(a.frame - props.appState.currentFrame) < 5
+        (a) => props.appState.currentFrame >= a.startFrame && props.appState.currentFrame <= a.endFrame,
     )
 
     return (
@@ -73,16 +74,25 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
                         Add Annotation
                     </X.Text>
 
-                    <X.Text size="xs" c="dimmed">
-                        Frame: {props.appState.currentFrame} ({props.appState.currentTime.toFixed(2)}s)
+                    <X.Text size="xs" c="dimmed" mb="xs">
+                        Current: Frame {props.appState.currentFrame} ({props.appState.currentTime.toFixed(2)}s)
+                        <br />
+                        Range: Frames {props.appState.frameRange[0]}-{props.appState.frameRange[1]}
                     </X.Text>
+
+                    <div>
+                        <X.Text size="xs" mb="xs">
+                            Rating
+                        </X.Text>
+                        <X.Rating value={uist.rating} onChange={(val) => uist.setRating(val)} />
+                    </div>
 
                     <X.Group gap="xs">
                         <X.TextInput
                             placeholder="Add tag..."
                             value={uist.tagInput}
-                            onChange={e => uist.setTagInput(e.currentTarget.value)}
-                            onKeyDown={e => {
+                            onChange={(e) => uist.setTagInput(e.currentTarget.value)}
+                            onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                     uist.addTag()
                                 }
@@ -96,14 +106,11 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
 
                     {uist.tags.length > 0 && (
                         <X.Group gap="xs">
-                            {uist.tags.map(tag => (
+                            {uist.tags.map((tag) => (
                                 <X.Badge
                                     key={tag}
                                     rightSection={
-                                        <span
-                                            onClick={() => uist.removeTag(tag)}
-                                            style={{ cursor: "pointer" }}
-                                        >
+                                        <span onClick={() => uist.removeTag(tag)} style={{ cursor: "pointer" }}>
                                             ×
                                         </span>
                                     }
@@ -117,15 +124,11 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
                     <X.Textarea
                         placeholder="Add notes..."
                         value={uist.notes}
-                        onChange={e => uist.setNotes(e.currentTarget.value)}
+                        onChange={(e) => uist.setNotes(e.currentTarget.value)}
                         rows={3}
                     />
 
-                    <X.Button
-                        onClick={() => uist.saveAnnotation()}
-                        disabled={uist.tags.length === 0 && !uist.notes}
-                        fullWidth
-                    >
+                    <X.Button onClick={() => uist.saveAnnotation()} disabled={uist.tags.length === 0 && !uist.notes} fullWidth>
                         Save Annotation
                     </X.Button>
                 </X.Stack>
@@ -144,21 +147,20 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
                                     No annotations yet
                                 </X.Text>
                             ) : (
-                                props.appState.annotations.map(annotation => (
+                                props.appState.annotations.map((annotation) => (
                                     <X.Card
                                         key={annotation.id}
                                         padding="xs"
                                         withBorder
-                                        bg={
-                                            currentAnnotations.includes(annotation)
-                                                ? "blue.0"
-                                                : undefined
-                                        }
+                                        bg={currentAnnotations.includes(annotation) ? "blue.0" : undefined}
                                     >
                                         <X.Group justify="space-between" mb="xs">
-                                            <X.Text size="xs" fw={500}>
-                                                Frame {annotation.frame}
-                                            </X.Text>
+                                            <div>
+                                                <X.Text size="xs" fw={500}>
+                                                    Frames {annotation.startFrame}-{annotation.endFrame}
+                                                </X.Text>
+                                                <X.Rating value={annotation.rating} readOnly size="xs" />
+                                            </div>
                                             <X.ActionIcon
                                                 size="sm"
                                                 color="red"
@@ -171,7 +173,7 @@ export const AnnotationTools = observer((props: AnnotationToolsProps) => {
 
                                         {annotation.tags.length > 0 && (
                                             <X.Group gap="xs" mb="xs">
-                                                {annotation.tags.map(tag => (
+                                                {annotation.tags.map((tag) => (
                                                     <X.Badge key={tag} size="sm">
                                                         {tag}
                                                     </X.Badge>

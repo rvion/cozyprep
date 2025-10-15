@@ -9,6 +9,7 @@ export class AppState {
     error: string | null = null
     currentTime = 0
     currentFrame = 0
+    frameRange: [number, number] = [0, 10]
 
     constructor() {
         makeAutoObservable(this)
@@ -18,6 +19,10 @@ export class AppState {
     setCurrentTime(time: number, frame: number) {
         this.currentTime = time
         this.currentFrame = frame
+    }
+
+    setFrameRange(range: [number, number]) {
+        this.frameRange = range
     }
 
     async loadVideos() {
@@ -62,14 +67,21 @@ export class AppState {
         }
     }
 
-    async addAnnotation(timestamp: number, frame: number, tags: string[], notes: string) {
+    async addAnnotation(
+        timestamp: number,
+        startFrame: number,
+        endFrame: number,
+        tags: string[],
+        notes: string,
+        rating: number
+    ) {
         if (!this.selectedVideo) return
 
         try {
             const res = await fetch(`/api/annotations/${this.selectedVideo.id}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ timestamp, frame, tags, notes }),
+                body: JSON.stringify({ timestamp, startFrame, endFrame, tags, notes, rating }),
             })
             if (!res.ok) throw new Error("Failed to add annotation")
             const data = await res.json()
