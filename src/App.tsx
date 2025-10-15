@@ -5,7 +5,6 @@ import { useMemo } from "react"
 import { AppState } from "./AppState"
 import { VideoList } from "./VideoList"
 import { VideoPlayer } from "./VideoPlayer"
-import { AnnotationTools } from "./AnnotationTools"
 import { observer } from "mobx-react-lite"
 
 const theme = X.createTheme({
@@ -26,19 +25,12 @@ export const App = observer(() => {
                     </X.Group>
                 </X.AppShell.Header>
 
-                <X.AppShell.Navbar p="md">
+                <X.AppShell.Navbar>
                     <VideoList appState={appState} />
                 </X.AppShell.Navbar>
 
                 <X.AppShell.Main>
-                    <X.Grid gutter="md">
-                        <X.Grid.Col span={8}>
-                            <VideoPlayer appState={appState} />
-                        </X.Grid.Col>
-                        <X.Grid.Col span={4}>
-                            <AnnotationTools appState={appState} />
-                        </X.Grid.Col>
-                    </X.Grid>
+                    <VideoPlayer appState={appState} />
                 </X.AppShell.Main>
             </X.AppShell>
         </X.MantineProvider>

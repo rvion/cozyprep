@@ -3,6 +3,7 @@ import { usePropsAsStableObservableObject } from "./usePropsAsStableObservableOb
 import { makeAutoObservable, reaction } from "mobx"
 import { useMemo, useRef, useEffect } from "react"
 import type { AppState } from "./AppState"
+import { AnnotationTools } from "./AnnotationTools"
 
 export type VideoPlayerProps = {
     appState: AppState
@@ -121,10 +122,18 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
         const video = videoRef.current
         if (!video) return
 
-        if (Math.abs(video.currentTime - uist.currentTime) > 0.1) {
-            video.currentTime = uist.currentTime
-        }
-    }, [uist.currentTime])
+        // Use MobX reaction to sync video.currentTime with uist.currentTime
+        const dispose = reaction(
+            () => uist.currentTime,
+            (time) => {
+                if (Math.abs(video.currentTime - time) > 0.01) {
+                    video.currentTime = time
+                }
+            }
+        )
+
+        return dispose
+    }, [uist])
 
     if (!props.appState.selectedVideo) {
         return (
@@ -136,16 +145,7 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
 
     return (
         <X.Stack gap="md" h="100%">
-            <div className="relative bg-black rounded overflow-hidden">
-                <video
-                    ref={videoRef}
-                    src={props.appState.selectedVideo.url}
-                    className="w-full"
-                    style={{ maxHeight: "60vh" }}
-                    preload="metadata"
-                />
-            </div>
-
+            {/* Metadata and Controls Section */}
             <X.Stack gap="sm">
                 <X.Group justify="space-between" align="center">
                     <X.Stack gap={2}>
@@ -153,7 +153,7 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
                             Frame: {uist.currentFrame} / {uist.totalFrames}
                         </X.Text>
                         <X.Text size="xs" c="dimmed">
-                            Metadata: {props.appState.selectedVideo?.width || "?"}x{props.appState.selectedVideo?.height || "?"} @ {props.appState.selectedVideo?.fps?.toFixed(2) || "?"}fps, {props.appState.selectedVideo?.duration?.toFixed(2) || "?"}s
+                            {props.appState.selectedVideo?.width || "?"}x{props.appState.selectedVideo?.height || "?"} @ {props.appState.selectedVideo?.fps?.toFixed(2) || "?"}fps, {props.appState.selectedVideo?.duration?.toFixed(2) || "?"}s
                         </X.Text>
                     </X.Stack>
                     <X.Group gap="xs">
@@ -212,6 +212,20 @@ export const VideoPlayer = observer((props: VideoPlayerProps) => {
                     </X.ActionIcon>
                 </X.Group>
             </X.Stack>
+
+            {/* Annotation Editor */}
+            <AnnotationTools appState={props.appState} />
+
+            {/* Video Player */}
+            <div className="relative bg-black rounded overflow-hidden">
+                <video
+                    ref={videoRef}
+                    src={props.appState.selectedVideo.url}
+                    className="w-full"
+                    style={{ maxHeight: "40vh" }}
+                    preload="metadata"
+                />
+            </div>
         </X.Stack>
     )
 })

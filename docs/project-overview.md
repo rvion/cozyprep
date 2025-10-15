@@ -49,9 +49,11 @@ Bun server with static file serving and REST API.
 **Component Structure:**
 ```
 App (root)
-├── VideoList (left sidebar)
-├── VideoPlayer (center, 8 cols)
-└── AnnotationTools (right, 4 cols)
+├── VideoList (left sidebar, 300px)
+└── VideoPlayer (main, max 800px width)
+    ├── Metadata & Controls (top)
+    ├── AnnotationTools (middle, embedded)
+    └── Video Element (bottom)
 ```
 
 ## Data Models
@@ -163,59 +165,59 @@ App (root)
 
 ### AnnotationTools (src/AnnotationTools.tsx)
 
-**Purpose**: Create, view, and manage annotations
+**Purpose**: Single continuously editable annotation tied to current frame range
 
 **Props:**
 - `appState: AppState` - global state reference
 
 **Local State:**
-- `tags: string[]` - tags for new annotation
-- `notes: string` - notes for new annotation
 - `tagInput: string` - tag input field value
-- `rating: number` - 1-5 star rating (defaults to 3)
+- `currentAnnotation` (computed) - finds annotation matching current frameRange or returns null
 
-**Note:** Frame range is now stored in AppState (accessed via `appState.frameRange`) and displayed in VideoPlayer for better UX
-
-**UI Sections:**
-
-1. **Add Annotation Card**
-   - Shows current frame/timestamp and selected range
-   - Rating selector (1-5 stars)
-   - Tag input + "Add" button (Enter key supported)
-   - Tag badges with remove (×) button
-   - Notes textarea
-   - "Save Annotation" button (disabled if empty)
-
-   **Note:** Frame range selection moved to VideoPlayer for better visual alignment with playback controls
-
-2. **All Annotations Card**
-   - Scrollable list (300px height)
-   - Shows annotation count
-   - Each annotation shows:
-     - Frame range (startFrame-endFrame)
-     - Star rating (read-only)
-     - Delete button (×)
-     - Tag badges
-     - Notes text
-   - Highlights annotations when current frame is within their range (blue background)
+**Computed Properties:**
+- `tags` - tags from currentAnnotation or empty array
+- `notes` - notes from currentAnnotation or empty string
+- `rating` - rating from currentAnnotation or default 3
 
 **Behavior:**
-- Clears form after saving annotation
-- Filters annotations to show those near current frame
-- Real-time updates via MobX reactivity
+- **Auto-creates** annotation when user starts editing (adds tag, types notes, or changes rating)
+- **Auto-saves** all changes immediately via updateAnnotation API
+- **Frame-range based**: annotation is tied to `appState.frameRange` (not current frame)
+- Changing frameRange switches to different annotation (if one exists) or shows blank editor
+- Clear button (×) deletes current annotation
+
+**UI Elements:**
+- Header with title and clear button
+- Frame range display with "(editing)" or "(no annotation)" status
+- Rating selector (1-5 stars)
+- Tag input + "Add" button (Enter key supported)
+- Tag badges with remove (×) button
+- Notes textarea (4 rows)
+
+**No "Save" button** - all changes are immediately persisted to backend
 
 ## UI Layout
 
 **AppShell Configuration:**
 - Header: 60px height, "Video Annotation Tool" title
-- Navbar: 300px width, breakpoint at "sm"
-- Main: 2-column grid (8 cols video, 4 cols tools)
+- Navbar: 300px width, breakpoint at "sm", contains VideoList
+- Main: Single column, max 800px width, contains VideoPlayer
 - Padding: "md" throughout
+
+**VideoPlayer Layout (top to bottom):**
+1. Metadata & Controls Section
+   - Frame counter and video metadata (resolution, fps, duration)
+   - FPS input and time display
+   - Playback progress slider
+   - Annotation frame range selector
+   - Transport controls (prev/play/next)
+2. Annotation Editor (embedded AnnotationTools component)
+3. Video element (max height 40vh)
 
 **Responsive:**
 - Navbar collapses on small screens
-- Video player constrains to 60vh max height
-- Annotations scroll independently
+- All UI elements grouped in top-left portion of screen
+- Video scales to fit container
 
 ## Development
 
@@ -240,6 +242,10 @@ bun build src/index.html
 
 ## Recent Updates
 
+- ✅ **Backend metadata extraction** - ffprobe extracts duration, fps, width, height on video load
+- ✅ **Single continuously editable annotation** - frame-range based, auto-saves, no "Save" button
+- ✅ **Reorganized UI layout** - all controls grouped at top-left (metadata → annotation editor → video)
+- ✅ **Fixed playback slider bug** - MobX reaction syncs video.currentTime with slider changes
 - ✅ File-based persistent storage (annotations saved to .txt files)
 - ✅ Frame range selection (start/end frames with RangeSlider)
 - ✅ Rating system (1-5 stars per annotation)
