@@ -20,9 +20,7 @@ class AnnotationToolsState {
         // Auto-save when annotation data changes
         reaction(
             () => this.currentAnnotation,
-            () => {
-                this.debouncedSave()
-            }
+            () => void this.debouncedSave(),
         )
     }
 
@@ -31,9 +29,7 @@ class AnnotationToolsState {
         const [startFrame, endFrame] = this.p.appState.frameRange
 
         // Find existing annotation matching this frame range
-        const existing = this.p.appState.annotations.find(
-            (a) => a.startFrame === startFrame && a.endFrame === endFrame
-        )
+        const existing = this.p.appState.annotations.find((a) => a.startFrame === startFrame && a.endFrame === endFrame)
 
         return existing || null
     }
@@ -106,14 +102,7 @@ class AnnotationToolsState {
     ensureAnnotationExists() {
         if (!this.currentAnnotation) {
             const [startFrame, endFrame] = this.p.appState.frameRange
-            this.p.appState.addAnnotation(
-                this.p.appState.currentTime,
-                startFrame,
-                endFrame,
-                [],
-                "",
-                3
-            )
+            this.p.appState.addAnnotation(this.p.appState.currentTime, startFrame, endFrame, [], "", 3)
         }
     }
 
