@@ -1,0 +1,41 @@
+{
+    "version": "2.0.0",
+    // "options": { "shell": { "executable": "zsh", "args": ["-l"] } },
+    "tasks": [
+        {
+            "label": "starts everything",
+            "dependsOn": [
+                //
+                "🖼  Front",
+                "👁  TSC"
+            ],
+            "group": { "kind": "build", "isDefault": true },
+            "runOptions": { "runOn": "folderOpen", "instanceLimit": 1 }
+        },
+        {
+            "label": "👁  TSC",
+            "detail": "Get all typescript errors in problems pane",
+            "type": "process",
+            "options": { "env": { "NODE_OPTIONS": "--max-old-space-size=8192" } },
+            "command": "./node_modules/.bin/tsc",
+            "args": ["--watch", "--noEmit", "--incremental", "--project", "tsconfig.json"],
+            "isBackground": true,
+            "problemMatcher": "$tsc-watch",
+            "presentation": { "reveal": "never" /* "group": "transpiling" */ },
+            "group": "build",
+            "runOptions": { "instanceLimit": 1 }
+        },
+
+        {
+            "label": "🖼  Front",
+            "detail": "start FRONTEND devserver",
+            "type": "process",
+            "command": "bun",
+            "args": ["run", "dev"],
+            "isBackground": true,
+            "presentation": { "reveal": "never", "close": false /* "group": "dev-server" */ },
+            "group": "build",
+            "runOptions": { "instanceLimit": 1 }
+        }
+    ]
+}
